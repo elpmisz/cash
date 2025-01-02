@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: cash-app
+    restart: always
+    working_dir: /var/www/
+    volumes:
+      - "../src:/var/www"
+
+  server:
+    image: nginx:alpine
+    container_name: cash-server
+    restart: always
+    ports:
+      - "9000:80"
+    volumes:
+      - ../src:/var/www
+      - ./nginx:/etc/nginx/conf.d
+      
+  database:
+    image: mariadb:latest
+    container_name: cash-database
+    restart: always
+    ports:
+      - "3309:3306"
+    command: ["--sql_mode="]
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE}
+      TZ: Asia/Bangkok
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: cash-phpmyadmin
+    restart: always
+    ports:
+      - "9001:80"
+    environment:
+      PMA_HOST: ${DB_HOST}
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_ROOT_PASSWORD}
+      UPLOAD_LIMIT: 20M
