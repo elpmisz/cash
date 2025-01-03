@@ -49,6 +49,15 @@ include_once(__DIR__ . "/../layout/header.php");
               </div>
             </div>
           </div>
+          <div class="row mb-2">
+            <label class="col-xl-2 offset-xl-2 col-form-label">ผู้จัดการ / ผู้อนุมัติ</label>
+            <div class="col-xl-4">
+              <select class="form-control form-control-sm user-select" name="manager_id" required></select>
+              <div class="invalid-feedback">
+                กรุณา กรอกข้อมูล!
+              </div>
+            </div>
+          </div>
 
           <div class="row justify-content-center mb-2">
             <div class="col-xl-3 mb-2">
@@ -71,3 +80,22 @@ include_once(__DIR__ . "/../layout/header.php");
 
 
 <?php include_once(__DIR__ . "/../layout/footer.php"); ?>
+<script>
+  $(".user-select").select2({
+    placeholder: "-- เลือก --",
+    allowClear: true,
+    width: "100%",
+    ajax: {
+      url: "/cash/authorize/user-select",
+      method: "POST",
+      dataType: "json",
+      delay: 100,
+      processResults: function(data) {
+        return {
+          results: data
+        };
+      },
+      cache: true
+    }
+  });
+</script>

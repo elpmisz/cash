@@ -226,20 +226,20 @@ class Cash
 
   public function remark_insert($data)
   {
-    $sql = "INSERT INTO cash.remark(`request_id`, `user_id`, `text`, `status`) VALUES(?,?,?,?)";
+    $sql = "INSERT INTO cash.cash_remark(`request_id`, `login_id`, `text`, `status`) VALUES(?,?,?,?)";
     $stmt = $this->dbcon->prepare($sql);
     return $stmt->execute($data);
   }
 
   public function remark_view($data)
   {
-    $sql = "SELECT CONCAT('K.',c.user_name,' ',c.user_surname) username,a.text,
+    $sql = "SELECT CONCAT(c.firstname,' ',c.lastname) username,a.text,
     (
       CASE
-        WHEN a.status = 1 THEN 'รออนุมัติ'
-        WHEN a.status = 2 THEN 'ผ่านการอนุมัติ'
-        WHEN a.status = 3 THEN 'ผ่านการอนุมัติ'
-        WHEN a.status = 4 THEN 'ผ่านการอนุมัติ'
+        WHEN a.status = 1 THEN 'รอผู้จัดการดำเนินการ'
+        WHEN a.status = 2 THEN 'ผ่านการอนุมัติจากผู้จัดการ'
+        WHEN a.status = 3 THEN 'ผ่านการอนุมัติจากผู้อนุมัติ'
+        WHEN a.status = 4 THEN 'ผ่านการอนุมัติจากผู้จัดการการเงิน'
         WHEN a.status = 5 THEN 'จ่ายเงินแล้ว'
         WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
         WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
@@ -258,12 +258,12 @@ class Cash
         ELSE NULL 
       END
     ) status_color,
-    DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created
-    FROM cash.remark a
+    DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created 
+    FROM cash.cash_remark a
     LEFT JOIN cash.cash_request b
-    ON a.cash_request_id = b.id
-    LEFT JOIN cpl.emp_user c
-    ON a.user_id = c.user_id
+    ON a.request_id = b.id 
+    LEFT JOIN cash.user c
+    ON a.login_id = c.login 
     WHERE b.uuid = ?
     ORDER BY a.status DESC";
     $stmt = $this->dbcon->prepare($sql);
@@ -273,7 +273,7 @@ class Cash
 
   public function file_insert($data)
   {
-    $sql = "INSERT INTO cash.file(`request_id`, `name`) VALUES(?,?)";
+    $sql = "INSERT INTO cash.cash_file(`request_id`, `name`) VALUES(?,?)";
     $stmt = $this->dbcon->prepare($sql);
     return $stmt->execute($data);
   }
@@ -281,9 +281,9 @@ class Cash
   public function file_view($data)
   {
     $sql = "SELECT a.id,a.name
-    FROM cash.`file` a
+    FROM cash.cash_file a
     LEFT JOIN cash.cash_request b
-    ON a.cash_request_id = b.id
+    ON a.request_id = b.id
     WHERE a.status = 1
     AND b.uuid = ?";
     $stmt = $this->dbcon->prepare($sql);
@@ -304,12 +304,12 @@ class Cash
 
   public function request_data($user)
   {
-    $sql = "SELECT COUNT(*) FROM cash.cash_request a WHERE a.login_id = '{$user}'";
+    $sql = "select COUNT(*) from cash.cash_request a where a.login_id = '{$user}'";
     $stmt = $this->dbcon->prepare($sql);
     $stmt->execute();
     $total = $stmt->fetchColumn();
 
-    $column = ["a.id", "a.last", "b.user_name", "a.objective", "a.created"];
+    $column = ["a.id", "a.last", "b.firstname", "a.objective", "sum(c.amount)", "a.created"];
 
     $keyword = (isset($_POST['search']['value']) ? trim($_POST['search']['value']) : "");
     $filter_order = (isset($_POST['order']) ? $_POST['order'] : "");
@@ -324,11 +324,11 @@ class Cash
     DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
     (
       CASE
-        WHEN a.status = 1 THEN 'รออนุมัติ'
-        WHEN a.status = 2 THEN 'รออนุมัติ'
-        WHEN a.status = 3 THEN 'รออนุมัติ'
-        WHEN a.status = 4 THEN 'รอดำเนินการ'
-        WHEN a.status = 5 THEN 'รอรับคืน'
+        WHEN a.status = 1 THEN 'รอผู้จัดการดำเนินการ'
+        WHEN a.status = 2 THEN 'รออนุมัติดำเนินการ'
+        WHEN a.status = 3 THEN 'รอผู้จัดการการเงินดำเนินการ'
+        WHEN a.status = 4 THEN 'รอดำเนินการจ่ายเงิน'
+        WHEN a.status = 5 THEN 'รอดำเนินการรับคืน'
         WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
         WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
         ELSE NULL 
@@ -406,12 +406,12 @@ class Cash
 
   public function manager_data()
   {
-    $sql = "SELECT COUNT(*) FROM cash.cash_request a WHERE a.status IN (1,2)";
+    $sql = "select COUNT(*) from cash.cash_request a where a.status = 1";
     $stmt = $this->dbcon->prepare($sql);
     $stmt->execute();
     $total = $stmt->fetchColumn();
 
-    $column = ["a.id", "a.last", "b.user_name", "a.objective", "a.created"];
+    $column = ["a.id", "a.last", "b.firstname", "a.objective", "sum(c.amount)", "a.created"];
 
     $keyword = (isset($_POST['search']['value']) ? trim($_POST['search']['value']) : "");
     $filter_order = (isset($_POST['order']) ? $_POST['order'] : "");
@@ -421,110 +421,16 @@ class Cash
     $limit_length = (isset($_POST['length']) ? $_POST['length'] : "");
     $draw = (isset($_REQUEST['draw']) ? $_REQUEST['draw'] : "");
 
-    $sql = "SELECT a.id,a.uuid,CONCAT('H',YEAR(NOW()),LPAD(a.last, GREATEST(LENGTH(a.last), 4), '0')) `number`,a.objective,
-    CONCAT('K.',b.user_name,' ',b.user_surname) username,DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
+    $sql = "select a.id,a.uuid,concat('C',year(a.created),LPAD(a.last, greatest(LENGTH(a.last),4),'0')) ticket,
+    concat(b.firstname,' ',b.lastname) username,a.objective,sum(c.amount) total,
+    DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
     (
       CASE
-        WHEN a.status = 1 THEN 'รออนุมัติ'
-        WHEN a.status = 2 THEN 'รออนุมัติ'
-        WHEN a.status = 3 THEN 'รออนุมัติ'
-        WHEN a.status = 4 THEN 'รอดำเนินการ'
-        WHEN a.status = 5 THEN 'รอรับคืน'
-        WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
-        WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
-        ELSE NULL 
-      END
-    ) status_name,
-    (
-      CASE
-        WHEN a.status = 1 THEN 'danger'
-        WHEN a.status = 2 THEN 'danger'
-        WHEN a.status = 3 THEN 'primary'
-        WHEN a.status = 4 THEN 'info'
-        WHEN a.status = 5 THEN 'warning'
-        WHEN a.status = 6 THEN 'success'
-        WHEN a.status = 7 THEN 'danger'
-        ELSE NULL 
-      END
-    ) status_color,
-    IF(a.status = 1,'manager','manager2') `page`
-    FROM cash.cash_request a
-    LEFT JOIN cpl.emp_user b
-    ON a.user_id = b.user_id
-    WHERE a.status IN (1,2) ";
-
-    if (!empty($keyword)) {
-      $sql .= " AND (a.objective LIKE '%{$keyword}%') ";
-    }
-
-    if ($filter_order) {
-      $sql .= " ORDER BY {$column[$order_column]} {$order_dir} ";
-    } else {
-      $sql .= " ORDER BY a.status ASC, a.created DESC ";
-    }
-
-    $sql2 = "";
-    if ($limit_length) {
-      $sql2 .= "LIMIT {$limit_start}, {$limit_length}";
-    }
-
-    $stmt = $this->dbcon->prepare($sql);
-    $stmt->execute();
-    $filter = $stmt->rowCount();
-    $stmt = $this->dbcon->prepare($sql . $sql2);
-    $stmt->execute();
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $data = [];
-    foreach ($result as $row) {
-      $action = "<a href='/cash/{$row['page']}/{$row['uuid']}' class='badge badge-{$row['status_color']} font-weight-light'>{$row['status_name']}</a>";
-
-      if (!empty($row['id'])) {
-        $data[] = [
-          $action,
-          $row['number'],
-          $row['username'],
-          str_replace("\n", "<br>", $row['objective']),
-          $row['created'],
-        ];
-      }
-    }
-
-    $output = [
-      "draw" => $draw,
-      "recordsTotal" =>  $total,
-      "recordsFiltered" => $filter,
-      "data" => $data
-    ];
-    return $output;
-  }
-
-  public function approver_data()
-  {
-    $sql = "SELECT COUNT(*) FROM cash.cash_request a WHERE a.status = 3";
-    $stmt = $this->dbcon->prepare($sql);
-    $stmt->execute();
-    $total = $stmt->fetchColumn();
-
-    $column = ["a.id", "a.last", "b.user_name", "a.objective", "a.created"];
-
-    $keyword = (isset($_POST['search']['value']) ? trim($_POST['search']['value']) : "");
-    $filter_order = (isset($_POST['order']) ? $_POST['order'] : "");
-    $order_column = (isset($_POST['order']['0']['column']) ? $_POST['order']['0']['column'] : "");
-    $order_dir = (isset($_POST['order']['0']['dir']) ? $_POST['order']['0']['dir'] : "");
-    $limit_start = (isset($_POST['start']) ? $_POST['start'] : "");
-    $limit_length = (isset($_POST['length']) ? $_POST['length'] : "");
-    $draw = (isset($_REQUEST['draw']) ? $_REQUEST['draw'] : "");
-
-    $sql = "SELECT a.id,a.uuid,CONCAT('H',YEAR(NOW()),LPAD(a.last, GREATEST(LENGTH(a.last), 4), '0')) `number`,a.objective,
-    CONCAT('K.',b.user_name,' ',b.user_surname) username,DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
-    (
-      CASE
-        WHEN a.status = 1 THEN 'รออนุมัติ'
-        WHEN a.status = 2 THEN 'รออนุมัติ'
-        WHEN a.status = 3 THEN 'รออนุมัติ'
-        WHEN a.status = 4 THEN 'รอดำเนินการ'
-        WHEN a.status = 5 THEN 'รอรับคืน'
+        WHEN a.status = 1 THEN 'รอผู้จัดการดำเนินการ'
+        WHEN a.status = 2 THEN 'รออนุมัติดำเนินการ'
+        WHEN a.status = 3 THEN 'รอผู้จัดการการเงินดำเนินการ'
+        WHEN a.status = 4 THEN 'รอดำเนินการจ่ายเงิน'
+        WHEN a.status = 5 THEN 'รอดำเนินการรับคืน'
         WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
         WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
         ELSE NULL 
@@ -542,24 +448,29 @@ class Cash
         ELSE NULL 
       END
     ) status_color
-    FROM cash.cash_request a
-    LEFT JOIN cpl.emp_user b
-    ON a.user_id = b.user_id
-    WHERE a.status = 3 ";
+    from cash.cash_request a
+    left join cash.user b
+    on a.login_id = b.login 
+    left join cash.cash_item c 
+    on a.id = c.request_id
+    where a.status = 1
+    and c.status = 1 ";
 
     if (!empty($keyword)) {
       $sql .= " AND (a.objective LIKE '%{$keyword}%') ";
     }
 
+    $sql .= " group by a.id ";
+
     if ($filter_order) {
-      $sql .= " ORDER BY {$column[$order_column]} {$order_dir} ";
+      $sql .= " order by {$column[$order_column]} {$order_dir} ";
     } else {
-      $sql .= " ORDER BY a.status ASC, a.created DESC ";
+      $sql .= " order by a.status asc, a.created desc ";
     }
 
     $sql2 = "";
     if ($limit_length) {
-      $sql2 .= "LIMIT {$limit_start}, {$limit_length}";
+      $sql2 .= "limit {$limit_start}, {$limit_length}";
     }
 
     $stmt = $this->dbcon->prepare($sql);
@@ -571,14 +482,217 @@ class Cash
 
     $data = [];
     foreach ($result as $row) {
-      $action = "<a href='/cash/approver/{$row['uuid']}' class='badge badge-{$row['status_color']} font-weight-light'>{$row['status_name']}</a>";
+      $action = "<a href='/cash/manager/{$row['uuid']}' class='badge badge-{$row['status_color']} font-weight-light'>{$row['status_name']}</a>";
 
       if (!empty($row['id'])) {
         $data[] = [
           $action,
-          $row['number'],
+          $row['ticket'],
           $row['username'],
           str_replace("\n", "<br>", $row['objective']),
+          number_format($row['total'], 2),
+          $row['created'],
+        ];
+      }
+    }
+
+    $output = [
+      "draw" => $draw,
+      "recordsTotal" =>  $total,
+      "recordsFiltered" => $filter,
+      "data" => $data
+    ];
+    return $output;
+  }
+
+  public function approve_data()
+  {
+    $sql = "select COUNT(*) from cash.cash_request a where a.status = 2";
+    $stmt = $this->dbcon->prepare($sql);
+    $stmt->execute();
+    $total = $stmt->fetchColumn();
+
+    $column = ["a.id", "a.last", "b.firstname", "a.objective", "sum(c.amount)", "a.created"];
+
+    $keyword = (isset($_POST['search']['value']) ? trim($_POST['search']['value']) : "");
+    $filter_order = (isset($_POST['order']) ? $_POST['order'] : "");
+    $order_column = (isset($_POST['order']['0']['column']) ? $_POST['order']['0']['column'] : "");
+    $order_dir = (isset($_POST['order']['0']['dir']) ? $_POST['order']['0']['dir'] : "");
+    $limit_start = (isset($_POST['start']) ? $_POST['start'] : "");
+    $limit_length = (isset($_POST['length']) ? $_POST['length'] : "");
+    $draw = (isset($_REQUEST['draw']) ? $_REQUEST['draw'] : "");
+
+    $sql = "select a.id,a.uuid,concat('C',year(a.created),LPAD(a.last, greatest(LENGTH(a.last),4),'0')) ticket,
+    concat(b.firstname,' ',b.lastname) username,a.objective,sum(c.amount) total,
+    DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
+    (
+      CASE
+        WHEN a.status = 1 THEN 'รอผู้จัดการดำเนินการ'
+        WHEN a.status = 2 THEN 'รออนุมัติดำเนินการ'
+        WHEN a.status = 3 THEN 'รอผู้จัดการการเงินดำเนินการ'
+        WHEN a.status = 4 THEN 'รอดำเนินการจ่ายเงิน'
+        WHEN a.status = 5 THEN 'รอดำเนินการรับคืน'
+        WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
+        WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
+        ELSE NULL 
+      END
+    ) status_name,
+    (
+      CASE
+        WHEN a.status = 1 THEN 'danger'
+        WHEN a.status = 2 THEN 'danger'
+        WHEN a.status = 3 THEN 'primary'
+        WHEN a.status = 4 THEN 'info'
+        WHEN a.status = 5 THEN 'warning'
+        WHEN a.status = 6 THEN 'success'
+        WHEN a.status = 7 THEN 'danger'
+        ELSE NULL 
+      END
+    ) status_color
+    from cash.cash_request a
+    left join cash.user b
+    on a.login_id = b.login 
+    left join cash.cash_item c 
+    on a.id = c.request_id
+    where a.status = 2
+    and c.status = 1 ";
+
+    if (!empty($keyword)) {
+      $sql .= " AND (a.objective LIKE '%{$keyword}%') ";
+    }
+
+    $sql .= " group by a.id ";
+
+    if ($filter_order) {
+      $sql .= " order by {$column[$order_column]} {$order_dir} ";
+    } else {
+      $sql .= " order by a.status asc, a.created desc ";
+    }
+
+    $sql2 = "";
+    if ($limit_length) {
+      $sql2 .= "limit {$limit_start}, {$limit_length}";
+    }
+
+    $stmt = $this->dbcon->prepare($sql);
+    $stmt->execute();
+    $filter = $stmt->rowCount();
+    $stmt = $this->dbcon->prepare($sql . $sql2);
+    $stmt->execute();
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $data = [];
+    foreach ($result as $row) {
+      $action = "<a href='/cash/approve/{$row['uuid']}' class='badge badge-{$row['status_color']} font-weight-light'>{$row['status_name']}</a>";
+
+      if (!empty($row['id'])) {
+        $data[] = [
+          $action,
+          $row['ticket'],
+          $row['username'],
+          str_replace("\n", "<br>", $row['objective']),
+          number_format($row['total'], 2),
+          $row['created'],
+        ];
+      }
+    }
+
+    $output = [
+      "draw" => $draw,
+      "recordsTotal" =>  $total,
+      "recordsFiltered" => $filter,
+      "data" => $data
+    ];
+    return $output;
+  }
+
+  public function manager_finance_data()
+  {
+    $sql = "select COUNT(*) from cash.cash_request a where a.status = 3";
+    $stmt = $this->dbcon->prepare($sql);
+    $stmt->execute();
+    $total = $stmt->fetchColumn();
+
+    $column = ["a.id", "a.last", "b.firstname", "a.objective", "sum(c.amount)", "a.created"];
+
+    $keyword = (isset($_POST['search']['value']) ? trim($_POST['search']['value']) : "");
+    $filter_order = (isset($_POST['order']) ? $_POST['order'] : "");
+    $order_column = (isset($_POST['order']['0']['column']) ? $_POST['order']['0']['column'] : "");
+    $order_dir = (isset($_POST['order']['0']['dir']) ? $_POST['order']['0']['dir'] : "");
+    $limit_start = (isset($_POST['start']) ? $_POST['start'] : "");
+    $limit_length = (isset($_POST['length']) ? $_POST['length'] : "");
+    $draw = (isset($_REQUEST['draw']) ? $_REQUEST['draw'] : "");
+
+    $sql = "select a.id,a.uuid,concat('C',year(a.created),LPAD(a.last, greatest(LENGTH(a.last),4),'0')) ticket,
+    concat(b.firstname,' ',b.lastname) username,a.objective,sum(c.amount) total,
+    DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
+    (
+      CASE
+        WHEN a.status = 1 THEN 'รอผู้จัดการดำเนินการ'
+        WHEN a.status = 2 THEN 'รออนุมัติดำเนินการ'
+        WHEN a.status = 3 THEN 'รอผู้จัดการการเงินดำเนินการ'
+        WHEN a.status = 4 THEN 'รอดำเนินการจ่ายเงิน'
+        WHEN a.status = 5 THEN 'รอดำเนินการรับคืน'
+        WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
+        WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
+        ELSE NULL 
+      END
+    ) status_name,
+    (
+      CASE
+        WHEN a.status = 1 THEN 'danger'
+        WHEN a.status = 2 THEN 'danger'
+        WHEN a.status = 3 THEN 'primary'
+        WHEN a.status = 4 THEN 'info'
+        WHEN a.status = 5 THEN 'warning'
+        WHEN a.status = 6 THEN 'success'
+        WHEN a.status = 7 THEN 'danger'
+        ELSE NULL 
+      END
+    ) status_color
+    from cash.cash_request a
+    left join cash.user b
+    on a.login_id = b.login 
+    left join cash.cash_item c 
+    on a.id = c.request_id
+    where a.status = 3
+    and c.status = 1 ";
+
+    if (!empty($keyword)) {
+      $sql .= " AND (a.objective LIKE '%{$keyword}%') ";
+    }
+
+    $sql .= " group by a.id ";
+
+    if ($filter_order) {
+      $sql .= " order by {$column[$order_column]} {$order_dir} ";
+    } else {
+      $sql .= " order by a.status asc, a.created desc ";
+    }
+
+    $sql2 = "";
+    if ($limit_length) {
+      $sql2 .= "limit {$limit_start}, {$limit_length}";
+    }
+
+    $stmt = $this->dbcon->prepare($sql);
+    $stmt->execute();
+    $filter = $stmt->rowCount();
+    $stmt = $this->dbcon->prepare($sql . $sql2);
+    $stmt->execute();
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $data = [];
+    foreach ($result as $row) {
+      $action = "<a href='/cash/finance/{$row['uuid']}' class='badge badge-{$row['status_color']} font-weight-light'>{$row['status_name']}</a>";
+
+      if (!empty($row['id'])) {
+        $data[] = [
+          $action,
+          $row['ticket'],
+          $row['username'],
+          str_replace("\n", "<br>", $row['objective']),
+          number_format($row['total'], 2),
           $row['created'],
         ];
       }
@@ -595,12 +709,12 @@ class Cash
 
   public function finance_data()
   {
-    $sql = "SELECT COUNT(*) FROM cash.cash_request a WHERE a.status IN (4,5)";
+    $sql = "select COUNT(*) from cash.cash_request a where a.status IN (4,5)";
     $stmt = $this->dbcon->prepare($sql);
     $stmt->execute();
     $total = $stmt->fetchColumn();
 
-    $column = ["a.id", "a.last", "b.user_name", "a.objective", "a.created"];
+    $column = ["a.id", "a.last", "b.firstname", "a.objective", "sum(c.amount)", "a.created"];
 
     $keyword = (isset($_POST['search']['value']) ? trim($_POST['search']['value']) : "");
     $filter_order = (isset($_POST['order']) ? $_POST['order'] : "");
@@ -610,15 +724,16 @@ class Cash
     $limit_length = (isset($_POST['length']) ? $_POST['length'] : "");
     $draw = (isset($_REQUEST['draw']) ? $_REQUEST['draw'] : "");
 
-    $sql = "SELECT a.id,a.uuid,CONCAT('H',YEAR(NOW()),LPAD(a.last, GREATEST(LENGTH(a.last), 4), '0')) `number`,a.objective,
-    CONCAT('K.',b.user_name,' ',b.user_surname) username,DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
+    $sql = "select a.id,a.uuid,concat('C',year(a.created),LPAD(a.last, greatest(LENGTH(a.last),4),'0')) ticket,
+    concat(b.firstname,' ',b.lastname) username,a.objective,sum(c.amount) total,
+    DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
     (
       CASE
-        WHEN a.status = 1 THEN 'รออนุมัติ'
-        WHEN a.status = 2 THEN 'รออนุมัติ'
-        WHEN a.status = 3 THEN 'รออนุมัติ'
-        WHEN a.status = 4 THEN 'รอดำเนินการ'
-        WHEN a.status = 5 THEN 'รอรับคืน'
+        WHEN a.status = 1 THEN 'รอผู้จัดการดำเนินการ'
+        WHEN a.status = 2 THEN 'รออนุมัติดำเนินการ'
+        WHEN a.status = 3 THEN 'รอผู้จัดการการเงินดำเนินการ'
+        WHEN a.status = 4 THEN 'รอดำเนินการจ่ายเงิน'
+        WHEN a.status = 5 THEN 'รอดำเนินการรับคืน'
         WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
         WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
         ELSE NULL 
@@ -637,24 +752,29 @@ class Cash
       END
     ) status_color,
     IF(a.status = 4,'pay','receive') `page`
-    FROM cash.cash_request a
-    LEFT JOIN cpl.emp_user b
-    ON a.user_id = b.user_id
-    WHERE a.status IN (4,5) ";
+    from cash.cash_request a
+    left join cash.user b
+    on a.login_id = b.login 
+    left join cash.cash_item c 
+    on a.id = c.request_id
+    where a.status IN (4,5)
+    and c.status = 1 ";
 
     if (!empty($keyword)) {
       $sql .= " AND (a.objective LIKE '%{$keyword}%') ";
     }
 
+    $sql .= " group by a.id ";
+
     if ($filter_order) {
-      $sql .= " ORDER BY {$column[$order_column]} {$order_dir} ";
+      $sql .= " order by {$column[$order_column]} {$order_dir} ";
     } else {
-      $sql .= " ORDER BY a.status ASC, a.created DESC ";
+      $sql .= " order by a.status asc, a.created desc ";
     }
 
     $sql2 = "";
     if ($limit_length) {
-      $sql2 .= "LIMIT {$limit_start}, {$limit_length}";
+      $sql2 .= "limit {$limit_start}, {$limit_length}";
     }
 
     $stmt = $this->dbcon->prepare($sql);
@@ -671,9 +791,10 @@ class Cash
       if (!empty($row['id'])) {
         $data[] = [
           $action,
-          $row['number'],
+          $row['ticket'],
           $row['username'],
           str_replace("\n", "<br>", $row['objective']),
+          number_format($row['total'], 2),
           $row['created'],
         ];
       }
@@ -690,12 +811,12 @@ class Cash
 
   public function manage_data()
   {
-    $sql = "SELECT COUNT(*) FROM cash.cash_request";
+    $sql = "select COUNT(*) from cash.cash_request a";
     $stmt = $this->dbcon->prepare($sql);
     $stmt->execute();
     $total = $stmt->fetchColumn();
 
-    $column = ["a.id", "a.last", "b.user_name", "a.objective", "a.created"];
+    $column = ["a.id", "a.last", "b.firstname", "a.objective", "sum(c.amount)", "a.created"];
 
     $keyword = (isset($_POST['search']['value']) ? trim($_POST['search']['value']) : "");
     $filter_order = (isset($_POST['order']) ? $_POST['order'] : "");
@@ -705,15 +826,16 @@ class Cash
     $limit_length = (isset($_POST['length']) ? $_POST['length'] : "");
     $draw = (isset($_REQUEST['draw']) ? $_REQUEST['draw'] : "");
 
-    $sql = "SELECT a.id,a.uuid,CONCAT('H',YEAR(NOW()),LPAD(a.last, GREATEST(LENGTH(a.last), 4), '0')) `number`,a.objective,
-    CONCAT('K.',b.user_name,' ',b.user_surname) username,DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
+    $sql = "select a.id,a.uuid,concat('C',year(a.created),LPAD(a.last, greatest(LENGTH(a.last),4),'0')) ticket,
+    concat(b.firstname,' ',b.lastname) username,a.objective,sum(c.amount) total,
+    DATE_FORMAT(a.created,'%d/%m/%Y, %H:%i น.') created,
     (
       CASE
-        WHEN a.status = 1 THEN 'รออนุมัติ'
-        WHEN a.status = 2 THEN 'รออนุมัติ'
-        WHEN a.status = 3 THEN 'รออนุมัติ'
-        WHEN a.status = 4 THEN 'รอดำเนินการ'
-        WHEN a.status = 5 THEN 'รอรับคืน'
+        WHEN a.status = 1 THEN 'รอผู้จัดการดำเนินการ'
+        WHEN a.status = 2 THEN 'รออนุมัติดำเนินการ'
+        WHEN a.status = 3 THEN 'รอผู้จัดการการเงินดำเนินการ'
+        WHEN a.status = 4 THEN 'รอดำเนินการจ่ายเงิน'
+        WHEN a.status = 5 THEN 'รอดำเนินการรับคืน'
         WHEN a.status = 6 THEN 'ดำเนินการเรียบร้อย'
         WHEN a.status = 7 THEN 'รายการถูกยกเลิก'
         ELSE NULL 
@@ -731,24 +853,28 @@ class Cash
         ELSE NULL 
       END
     ) status_color
-    FROM cash.cash_request a
-    LEFT JOIN cpl.emp_user b
-    ON a.user_id = b.user_id
-    WHERE a.id != '' ";
+    from cash.cash_request a
+    left join cash.user b
+    on a.login_id = b.login 
+    left join cash.cash_item c 
+    on a.id = c.request_id
+    where c.status = 1 ";
 
     if (!empty($keyword)) {
       $sql .= " AND (a.objective LIKE '%{$keyword}%') ";
     }
 
+    $sql .= " group by a.id ";
+
     if ($filter_order) {
-      $sql .= " ORDER BY {$column[$order_column]} {$order_dir} ";
+      $sql .= " order by {$column[$order_column]} {$order_dir} ";
     } else {
-      $sql .= " ORDER BY a.status ASC, a.created DESC ";
+      $sql .= " order by a.status asc, a.created desc ";
     }
 
     $sql2 = "";
     if ($limit_length) {
-      $sql2 .= "LIMIT {$limit_start}, {$limit_length}";
+      $sql2 .= "limit {$limit_start}, {$limit_length}";
     }
 
     $stmt = $this->dbcon->prepare($sql);
@@ -765,9 +891,10 @@ class Cash
       if (!empty($row['id'])) {
         $data[] = [
           $action,
-          $row['number'],
+          $row['ticket'],
           $row['username'],
           str_replace("\n", "<br>", $row['objective']),
+          number_format($row['total'], 2),
           $row['created'],
         ];
       }

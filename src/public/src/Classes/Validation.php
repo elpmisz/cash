@@ -102,9 +102,9 @@ class Validation
   public function image_upload($tmp, $path)
   {
     $imageInfo   = (isset($tmp) ? getimagesize($tmp) : '');
-    $imageWidth   = 1200;
+    $imageWidth  = 1200;
     $imageHeight = (isset($imageInfo) ? round($imageWidth * $imageInfo[1] / $imageInfo[0]) : '');
-    $imageType    = $imageInfo[2];
+    $imageType   = $imageInfo[2];
 
     if ($imageType === IMAGETYPE_PNG) {
       $imageResource = imagecreatefrompng($tmp);
@@ -120,15 +120,18 @@ class Validation
       $imageTarget = imagecreatetruecolor($imageWidth, $imageHeight);
       imagecopyresampled($imageTarget, $imageResource, 0, 0, 0, 0, $imageWidth, $imageHeight, $imageX, $imageY);
       imagejpeg($imageTarget, $path);
-    } else {
-      $imageResource = imagecreatefrompng($tmp);
+    } elseif ($imageType === IMAGETYPE_WEBP) {
+      $imageResource = imagecreatefromwebp($tmp);
       $imageX = imagesx($imageResource);
       $imageY = imagesy($imageResource);
       $imageTarget = imagecreatetruecolor($imageWidth, $imageHeight);
       imagecopyresampled($imageTarget, $imageResource, 0, 0, 0, 0, $imageWidth, $imageHeight, $imageX, $imageY);
       imagewebp($imageTarget, $path);
+    } else {
+      throw new Exception('Unsupported image type.');
     }
   }
+
 
   public function file_unlink($data)
   {

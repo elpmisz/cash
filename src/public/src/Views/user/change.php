@@ -7,8 +7,7 @@ use App\Classes\User;
 
 $USER = new User();
 
-$row = $USER->user_view_email([$email]);
-$uuid = (!empty($row['uuid']) ? $row['uuid'] : "");
+$row = $USER->user_view([$email, $email]);
 ?>
 
 <div class="row">
@@ -23,7 +22,7 @@ $uuid = (!empty($row['uuid']) ? $row['uuid'] : "");
           <div class="row mb-2" style="display: none;">
             <label class="col-xl-2 offset-xl-2 col-form-label">UUID</label>
             <div class="col-xl-4">
-              <input type="text" class="form-control form-control-sm" name="uuid" value="<?php echo $uuid ?>" readonly>
+              <input type="text" class="form-control form-control-sm" name="uuid" value="<?php echo $row['uuid'] ?>" readonly>
             </div>
           </div>
           <div class="row mb-2">

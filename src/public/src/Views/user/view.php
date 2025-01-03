@@ -10,16 +10,7 @@ use App\Classes\User;
 
 $USER = new User();
 
-$row = $USER->user_view_uuid([$uuid]);
-$uuid = (!empty($row['uuid']) ? $row['uuid'] : "");
-$email = (!empty($row['email']) ? $row['email'] : "");
-$firstname = (!empty($row['firstname']) ? $row['firstname'] : "");
-$lastname = (!empty($row['lastname']) ? $row['lastname'] : "");
-$contact = (!empty($row['contact']) ? $row['contact'] : "");
-$user = (intval($row['level']) === 1 ? "checked" : "");
-$admin = (intval($row['level']) === 9 ? "checked" : "");
-$active = (intval($row['status']) === 1 ? "checked" : "");
-$inactive = (intval($row['status']) === 2 ? "checked" : "");
+$row = $USER->user_view([$uuid, $uuid]);
 ?>
 
 <div class="row">
@@ -34,13 +25,13 @@ $inactive = (intval($row['status']) === 2 ? "checked" : "");
           <div class="row mb-2" style="display: none;">
             <label class="col-xl-2 offset-xl-2 col-form-label">UUID</label>
             <div class="col-xl-4">
-              <input type="text" class="form-control form-control-sm" name="uuid" value="<?php echo $uuid ?>" readonly>
+              <input type="text" class="form-control form-control-sm" name="uuid" value="<?php echo $row['uuid'] ?>" readonly>
             </div>
           </div>
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">อีเมล</label>
             <div class="col-xl-4">
-              <input type="email" class="form-control form-control-sm" name="email" value="<?php echo $email ?>" required>
+              <input type="email" class="form-control form-control-sm" name="email" value="<?php echo $row['email'] ?>" required>
               <div class="invalid-feedback">
                 กรุณากรอกข้อมูล!
               </div>
@@ -49,7 +40,7 @@ $inactive = (intval($row['status']) === 2 ? "checked" : "");
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">ชื่อ</label>
             <div class="col-xl-4">
-              <input type="text" class="form-control form-control-sm" name="firstname" value="<?php echo $firstname ?>" required>
+              <input type="text" class="form-control form-control-sm" name="firstname" value="<?php echo $row['firstname'] ?>" required>
               <div class="invalid-feedback">
                 กรุณากรอกข้อมูล!
               </div>
@@ -58,7 +49,7 @@ $inactive = (intval($row['status']) === 2 ? "checked" : "");
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">นามสกุล</label>
             <div class="col-xl-4">
-              <input type="text" class="form-control form-control-sm" name="lastname" value="<?php echo $lastname ?>" required>
+              <input type="text" class="form-control form-control-sm" name="lastname" value="<?php echo $row['lastname'] ?>" required>
               <div class="invalid-feedback">
                 กรุณากรอกข้อมูล!
               </div>
@@ -67,9 +58,24 @@ $inactive = (intval($row['status']) === 2 ? "checked" : "");
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">ติดต่อ</label>
             <div class="col-xl-4">
-              <textarea class="form-control form-control-sm" name="contact" rows="4"><?php echo $contact ?></textarea>
+              <textarea class="form-control form-control-sm" name="contact" rows="4"><?php echo $row['contact'] ?></textarea>
               <div class="invalid-feedback">
                 กรุณากรอกข้อมูล!
+              </div>
+            </div>
+          </div>
+          <div class="row mb-2">
+            <label class="col-xl-2 offset-xl-2 col-form-label">ผู้จัดการ / ผู้อนุมัติ</label>
+            <div class="col-xl-4">
+              <select class="form-control form-control-sm user-select" name="manager_id" required>
+                <?php
+                if (!empty($row['manager_id'])) {
+                  echo "<option value='{$row['manager_id']}'>{$row['manager_name']}</option>";
+                }
+                ?>
+              </select>
+              <div class="invalid-feedback">
+                กรุณา กรอกข้อมูล!
               </div>
             </div>
           </div>
@@ -79,13 +85,13 @@ $inactive = (intval($row['status']) === 2 ? "checked" : "");
               <div class="row pb-2">
                 <div class="col-xl-3">
                   <label class="form-check-label px-3">
-                    <input class="form-check-input" type="radio" name="level" value="1" <?php echo $user ?> required>
+                    <input class="form-check-input" type="radio" name="level" value="1" <?php echo (intval($row['level']) === 1 ? "checked" : "") ?> required>
                     <span class="text-info">ผู้ใช้งาน</span>
                   </label>
                 </div>
                 <div class="col-xl-3">
                   <label class="form-check-label px-3">
-                    <input class="form-check-input" type="radio" name="level" value="9" <?php echo $admin ?> required>
+                    <input class="form-check-input" type="radio" name="level" value="9" <?php echo (intval($row['level']) === 9 ? "checked" : "") ?> required>
                     <span class="text-primary">ผู้ดูแลระบบ</span>
                   </label>
                 </div>
@@ -98,13 +104,13 @@ $inactive = (intval($row['status']) === 2 ? "checked" : "");
               <div class="row pb-2">
                 <div class="col-xl-3">
                   <label class="form-check-label px-3">
-                    <input class="form-check-input" type="radio" name="status" value="1" <?php echo $active ?> required>
+                    <input class="form-check-input" type="radio" name="status" value="1" <?php echo (intval($row['status']) === 1 ? "checked" : "") ?> required>
                     <span class="text-success">ใช้งาน</span>
                   </label>
                 </div>
                 <div class="col-xl-3">
                   <label class="form-check-label px-3">
-                    <input class="form-check-input" type="radio" name="status" value="2" <?php echo $inactive ?> required>
+                    <input class="form-check-input" type="radio" name="status" value="2" <?php echo (intval($row['status']) === 2 ? "checked" : "") ?> required>
                     <span class="text-danger">ระงับการใช้งาน</span>
                   </label>
                 </div>
@@ -133,3 +139,22 @@ $inactive = (intval($row['status']) === 2 ? "checked" : "");
 
 
 <?php include_once(__DIR__ . "/../layout/footer.php"); ?>
+<script>
+  $(".user-select").select2({
+    placeholder: "-- เลือก --",
+    allowClear: true,
+    width: "100%",
+    ajax: {
+      url: "/cash/authorize/user-select",
+      method: "POST",
+      dataType: "json",
+      delay: 100,
+      processResults: function(data) {
+        return {
+          results: data
+        };
+      },
+      cache: true
+    }
+  });
+</script>

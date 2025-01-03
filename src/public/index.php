@@ -28,6 +28,27 @@ $ROUTER->map("GET", "/cash/manage", function () {
 $ROUTER->map("GET", "/cash/view/[**:params]", function ($params) {
   require(__DIR__ . "/src/Views/cash/view.php");
 });
+$ROUTER->map("GET", "/cash/manager/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/cash/manager.php");
+});
+$ROUTER->map("GET", "/cash/approve/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/cash/approve.php");
+});
+$ROUTER->map("GET", "/cash/finance/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/cash/finance.php");
+});
+$ROUTER->map("GET", "/cash/pay/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/cash/pay.php");
+});
+$ROUTER->map("GET", "/cash/receive/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/cash/receive.php");
+});
+$ROUTER->map("GET", "/cash/complete/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/cash/complete.php");
+});
+$ROUTER->map("GET", "/cash/edit/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/cash/edit.php");
+});
 $ROUTER->map("POST", "/cash/[**:params]", function ($params) {
   require(__DIR__ . "/src/Views/cash/action.php");
 });
@@ -53,8 +74,8 @@ $ROUTER->map("GET", "/user/profile", function () {
 $ROUTER->map("GET", "/user/change", function () {
   require(__DIR__ . "/src/Views/user/change.php");
 });
-$ROUTER->map("GET", "/user/edit/[**:params]", function ($params) {
-  require(__DIR__ . "/src/Views/user/edit.php");
+$ROUTER->map("GET", "/user/view/[**:params]", function ($params) {
+  require(__DIR__ . "/src/Views/user/view.php");
 });
 $ROUTER->map("POST", "/user/[**:params]", function ($params) {
   require(__DIR__ . "/src/Views/user/action.php");

@@ -7,12 +7,7 @@ use App\Classes\User;
 
 $USER = new User();
 
-$row = $USER->user_view_email([$email]);
-$uuid = (!empty($row['uuid']) ? $row['uuid'] : "");
-$email = (!empty($row['email']) ? $row['email'] : "");
-$firstname = (!empty($row['firstname']) ? $row['firstname'] : "");
-$lastname = (!empty($row['lastname']) ? $row['lastname'] : "");
-$contact = (!empty($row['contact']) ? $row['contact'] : "");
+$row = $USER->user_view([$email, $email]);
 ?>
 
 <div class="row">
@@ -27,19 +22,19 @@ $contact = (!empty($row['contact']) ? $row['contact'] : "");
           <div class="row mb-2" style="display: none;">
             <label class="col-xl-2 offset-xl-2 col-form-label">UUID</label>
             <div class="col-xl-4">
-              <input type="text" class="form-control form-control-sm" name="uuid" value="<?php echo $uuid ?>" readonly>
+              <input type="text" class="form-control form-control-sm" name="uuid" value="<?php echo $row['uuid'] ?>" readonly>
             </div>
           </div>
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">อีเมล</label>
-            <div class="col-xl-4">
-              <input type="email" class="form-control form-control-sm" value="<?php echo $email ?>" readonly>
+            <div class="col-xl-4 text-underline">
+              <?php echo $row['email'] ?>
             </div>
           </div>
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">ชื่อ</label>
             <div class="col-xl-4">
-              <input type="text" class="form-control form-control-sm" name="firstname" value="<?php echo $firstname ?>" required>
+              <input type="text" class="form-control form-control-sm" name="firstname" value="<?php echo $row['firstname'] ?>" required>
               <div class="invalid-feedback">
                 กรุณากรอกข้อมูล!
               </div>
@@ -48,7 +43,7 @@ $contact = (!empty($row['contact']) ? $row['contact'] : "");
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">นามสกุล</label>
             <div class="col-xl-4">
-              <input type="text" class="form-control form-control-sm" name="lastname" value="<?php echo $lastname ?>" required>
+              <input type="text" class="form-control form-control-sm" name="lastname" value="<?php echo $row['lastname'] ?>" required>
               <div class="invalid-feedback">
                 กรุณากรอกข้อมูล!
               </div>
@@ -57,10 +52,16 @@ $contact = (!empty($row['contact']) ? $row['contact'] : "");
           <div class="row mb-2">
             <label class="col-xl-2 offset-xl-2 col-form-label">ติดต่อ</label>
             <div class="col-xl-4">
-              <textarea class="form-control form-control-sm" name="contact" rows="4"><?php echo $contact ?></textarea>
+              <textarea class="form-control form-control-sm" name="contact" rows="4"><?php echo $row['contact'] ?></textarea>
               <div class="invalid-feedback">
                 กรุณากรอกข้อมูล!
               </div>
+            </div>
+          </div>
+          <div class="row mb-2">
+            <label class="col-xl-2 offset-xl-2 col-form-label">ผู้จัดการ / ผู้อนุมัติ</label>
+            <div class="col-xl-4 text-underline">
+              <?php echo $row['manager_name'] ?>
             </div>
           </div>
 

@@ -22,13 +22,14 @@ if ($action === "create") {
     $firstname = (isset($_POST['firstname']) ? $VALIDATION->input($_POST['firstname']) : "");
     $lastname = (isset($_POST['lastname']) ? $VALIDATION->input($_POST['lastname']) : "");
     $contact = (isset($_POST['contact']) ? $VALIDATION->input($_POST['contact']) : "");
+    $manager_id = (isset($_POST['manager_id']) ? $VALIDATION->input($_POST['manager_id']) : "");
 
     $default_password = $USER->default_password();
     $hash_password = password_hash($default_password, PASSWORD_DEFAULT);
 
     $USER->login_insert([$email, $hash_password]);
     $login = $USER->last_insert_id();
-    $USER->user_insert([$login, $firstname, $lastname, $contact]);
+    $USER->user_insert([$login, $firstname, $lastname, $manager_id, $contact]);
 
     $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/user");
   } catch (PDOException $e) {
@@ -43,11 +44,12 @@ if ($action === "update") {
     $firstname = (isset($_POST['firstname']) ? $VALIDATION->input($_POST['firstname']) : "");
     $lastname = (isset($_POST['lastname']) ? $VALIDATION->input($_POST['lastname']) : "");
     $contact = (isset($_POST['contact']) ? $VALIDATION->input($_POST['contact']) : "");
+    $manager_id = (isset($_POST['manager_id']) ? $VALIDATION->input($_POST['manager_id']) : "");
     $level = (isset($_POST['level']) ? $VALIDATION->input($_POST['level']) : "");
     $status = (isset($_POST['status']) ? $VALIDATION->input($_POST['status']) : "");
 
-    $USER->admin_update([$email, $level, $status, $firstname, $lastname, $contact, $uuid]);
-    $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/user");
+    $USER->admin_update([$email, $level, $status, $firstname, $lastname, $manager_id, $contact, $uuid]);
+    $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/user/view/{$uuid}");
   } catch (PDOException $e) {
     die($e->getMessage());
   }

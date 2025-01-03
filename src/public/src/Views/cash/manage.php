@@ -27,7 +27,8 @@ include_once(__DIR__ . "/../layout/header.php");
                 <th width="10%">#</th>
                 <th width="10%">เลขที่เอกสาร</th>
                 <th width="10%">ผู้ใช้บริการ</th>
-                <th width="50%">วัตถุประสงค์</th>
+                <th width="40%">วัตถุประสงค์</th>
+                <th width="10%">ยอดรวม</th>
                 <th width="10%">วันที่</th>
               </tr>
             </thead>
@@ -48,3 +49,42 @@ include_once(__DIR__ . "/../layout/header.php");
 </div>
 
 <?php include_once(__DIR__ . "/../layout/footer.php"); ?>
+<script>
+  filter_datatable();
+
+  function filter_datatable() {
+    $(".manage-data").DataTable({
+      serverSide: true,
+      searching: false,
+      order: [],
+      ajax: {
+        url: "/cash/manage-data",
+        type: "POST",
+      },
+      columnDefs: [{
+        targets: [0, 1],
+        className: "text-center",
+      }, {
+        targets: [2, 3, 5],
+        className: "text-left",
+      }, {
+        targets: [4],
+        className: "text-right",
+      }],
+      "oLanguage": {
+        "sLengthMenu": "แสดง _MENU_ ลำดับ ต่อหน้า",
+        "sZeroRecords": "ไม่พบข้อมูลที่ค้นหา",
+        "sInfo": "แสดง _START_ ถึง _END_ ของ _TOTAL_ ลำดับ",
+        "sInfoEmpty": "แสดง 0 ถึง 0 ของ 0 ลำดับ",
+        "sInfoFiltered": "",
+        "sSearch": "ค้นหา :",
+        "oPaginate": {
+          "sFirst": "หน้าแรก",
+          "sLast": "หน้าสุดท้าย",
+          "sNext": "ถัดไป",
+          "sPrevious": "ก่อนหน้า"
+        }
+      },
+    });
+  };
+</script>

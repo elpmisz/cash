@@ -34,7 +34,7 @@ try {
 }
 
 $USER = new User();
-$user = $USER->user_view_email([$email, $email]);
+$user = $USER->user_view([$email, $email]);
 
 $CASH = new Cash();
 $VALIDATION = new Validation();
@@ -109,7 +109,7 @@ if ($action === "manager") {
     $reason = (isset($_POST['reason']) ? $VALIDATION->input($_POST['reason']) : "");
 
     $CASH->request_approve([$status, $request_id]);
-    $CASH->remark_insert([$request_id, $user_id, $reason, $status]);
+    $CASH->remark_insert([$request_id, $user['login_id'], $reason, $status]);
 
     $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/cash");
   } catch (PDOException $e) {
@@ -117,7 +117,7 @@ if ($action === "manager") {
   }
 }
 
-if ($action === "approver") {
+if ($action === "approve") {
   try {
     $request_id = (isset($_POST['id']) ? $VALIDATION->input($_POST['id']) : "");
     $uuid = (isset($_POST['uuid']) ? $VALIDATION->input($_POST['uuid']) : "");
@@ -125,7 +125,23 @@ if ($action === "approver") {
     $reason = (isset($_POST['reason']) ? $VALIDATION->input($_POST['reason']) : "");
 
     $CASH->request_approve([$status, $request_id]);
-    $CASH->remark_insert([$request_id, $user_id, $reason, $status]);
+    $CASH->remark_insert([$request_id, $user['login_id'], $reason, $status]);
+
+    $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/cash");
+  } catch (PDOException $e) {
+    die($e->getMessage());
+  }
+}
+
+if ($action === "finance") {
+  try {
+    $request_id = (isset($_POST['id']) ? $VALIDATION->input($_POST['id']) : "");
+    $uuid = (isset($_POST['uuid']) ? $VALIDATION->input($_POST['uuid']) : "");
+    $status = (isset($_POST['status']) ? $VALIDATION->input($_POST['status']) : "");
+    $reason = (isset($_POST['reason']) ? $VALIDATION->input($_POST['reason']) : "");
+
+    $CASH->request_approve([$status, $request_id]);
+    $CASH->remark_insert([$request_id, $user['login_id'], $reason, $status]);
 
     $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/cash");
   } catch (PDOException $e) {
@@ -144,7 +160,7 @@ if ($action === "pay") {
     $reason = (isset($_POST['reason']) ? $VALIDATION->input($_POST['reason']) : "");
 
     $CASH->request_pay([$pay_type, $cheque_number, $payment, $status, $request_id]);
-    $CASH->remark_insert([$request_id, $user_id, $reason, $status]);
+    $CASH->remark_insert([$request_id, $user['login_id'], $reason, $status]);
 
     $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/cash");
   } catch (PDOException $e) {
@@ -187,7 +203,7 @@ if ($action === "receive") {
     }
 
     $CASH->request_receive([$receive_type, $receive, $status, $request_id]);
-    $CASH->remark_insert([$request_id, $user_id, $reason, $status]);
+    $CASH->remark_insert([$request_id, $user['login_id'], $reason, $status]);
 
     $VALIDATION->alert("success", "ดำเนินการเรียบร้อย!", "/cash");
   } catch (PDOException $e) {
@@ -257,9 +273,19 @@ if ($action === "manager-data") {
   }
 }
 
-if ($action === "approver-data") {
+if ($action === "approve-data") {
   try {
-    $result = $CASH->approver_data();
+    $result = $CASH->approve_data();
+
+    echo json_encode($result);
+  } catch (PDOException $e) {
+    die($e->getMessage());
+  }
+}
+
+if ($action === "manager-finance-data") {
+  try {
+    $result = $CASH->manager_finance_data();
 
     echo json_encode($result);
   } catch (PDOException $e) {

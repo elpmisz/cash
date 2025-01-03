@@ -43,13 +43,13 @@ include_once(__DIR__ . "/../layout/header.php");
                       <td>
                         <input type="text" class="form-control form-control-sm" name="item_text[]" required>
                         <div class="invalid-feedback">
-                          REQUIRED!
+                          กรุณา กรอกข้อมูล!
                         </div>
                       </td>
                       <td>
                         <input type="number" class="form-control form-control-sm text-right item-amount" name="item_amount[]" step="0.01" required>
                         <div class="invalid-feedback">
-                          REQUIRED!
+                          กรุณา กรอกข้อมูล!
                         </div>
                       </td>
                     </tr>
@@ -73,7 +73,7 @@ include_once(__DIR__ . "/../layout/header.php");
             <div class="col-xl-6">
               <textarea class="form-control form-control-sm" rows="5" name="objective" required></textarea>
               <div class="invalid-feedback">
-                REQUIRED!
+                กรุณา กรอกข้อมูล!
               </div>
             </div>
           </div>

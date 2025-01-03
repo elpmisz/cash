@@ -31,7 +31,7 @@ try {
 $USER = new User();
 $SYSTEM = new System();
 $system = $SYSTEM->read();
-$user = $USER->user_view_email([$email, $email]);
+$user = $USER->user_view([$email, $email]);
 $SystemName = (isset($system['name']) ? $system['name'] : "");
 ?>
 <!DOCTYPE html>

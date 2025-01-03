@@ -65,32 +65,22 @@ class User
   public function user_insert($data)
   {
 
-    $sql = "INSERT INTO cash.user(login,firstname,lastname,contact) VALUES(?,?,?,?)";
+    $sql = "INSERT INTO cash.user( `login`, `firstname`, `lastname`, `manager_id`, `contact`) VALUES(?,?,?,?,?)";
     $stmt = $this->dbcon->prepare($sql);
     return $stmt->execute($data);
   }
 
-  public function user_view_uuid($data)
+  public function user_view($data)
   {
-    $sql = "SELECT a.uuid,a.email,a.`level`,a.status,b.firstname,b.lastname,
-    CONCAT(b.firstname,' ',b.lastname) fullname,b.contact
-    FROM cash.login a
-    LEFT JOIN cash.user b
-    ON a.id = b.login
-    WHERE a.uuid = ?";
-    $stmt = $this->dbcon->prepare($sql);
-    $stmt->execute($data);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-  }
-
-  public function user_view_email($data)
-  {
-    $sql = "SELECT a.id login_id,a.uuid,a.email,a.`level`,a.status,b.firstname,b.lastname,
-    CONCAT(b.firstname,' ',b.lastname) fullname,b.contact,b.contact
-    FROM cash.login a
-    LEFT JOIN cash.user b
-    ON a.id = b.login
-    WHERE (a.id = ? OR a.email = ?)";
+    $sql = "select a.id login_id,a.uuid,a.email,a.`level`,a.status,b.firstname,b.lastname,
+    CONCAT(b.firstname,' ',b.lastname) fullname,b.contact,b.contact,
+    b.manager_id,CONCAT(c.firstname,' ',c.lastname) manager_name 
+    from cash.login a
+    left join cash.user b
+    on a.id = b.login
+    left join cash.user c 
+    on b.manager_id = c.login 
+    where (a.uuid = ? OR a.email = ?)";
     $stmt = $this->dbcon->prepare($sql);
     $stmt->execute($data);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -125,6 +115,7 @@ class User
     a.updated = NOW(),
     b.firstname = ?,
     b.lastname = ?,
+    b.manager_id = ?,
     b.contact = ?
     WHERE a.uuid = ?";
     $stmt = $this->dbcon->prepare($sql);
@@ -145,10 +136,18 @@ class User
     return $stmt->execute($data);
   }
 
-
-  public function cash_email()
+  public function user_select($keyword)
   {
-    $sql = "SELECT email FROM cash.cash_request GROUP BY email";
+    $sql = "select a.id `id`,
+    concat(b.firstname,' ',b.lastname) `text`
+    from cash.login a 
+    left join cash.`user` b
+    on a.id = b.login 
+    where a.status = 1";
+    if (!empty($keyword)) {
+      $sql .= " and (b.firstname like '%{$keyword}%' OR b.lastname like '%{$keyword}%' OR a.email like '%{$keyword}%') ";
+    }
+    $sql .= " order by b.firstname asc ";
     $stmt = $this->dbcon->prepare($sql);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -229,7 +228,7 @@ class User
 
     $data = [];
     foreach ($result as $row) {
-      $status = "<a href='/user/edit/{$row['uuid']}' class='badge badge-{$row['status_color']} font-weight-light'>{$row['status_name']}</a>";
+      $status = "<a href='/user/view/{$row['uuid']}' class='badge badge-{$row['status_color']} font-weight-light'>{$row['status_name']}</a>";
       $level = "<a href='javascript:void(0)' class='badge badge-{$row['level_color']} font-weight-light'>{$row['level_name']}</a>";
       $data[] = [
         $status,

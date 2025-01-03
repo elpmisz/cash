@@ -94,13 +94,13 @@ $items = $CASH->item_view([$uuid]);
                       <td>
                         <input type="text" class="form-control form-control-sm" name="item_text[]">
                         <div class="invalid-feedback">
-                          REQUIRED!
+                          กรุณา กรอกข้อมูล!
                         </div>
                       </td>
                       <td>
                         <input type="number" class="form-control form-control-sm text-right item-amount" name="item_amount[]" step="0.01">
                         <div class="invalid-feedback">
-                          REQUIRED!
+                          กรุณา กรอกข้อมูล!
                         </div>
                       </td>
                     </tr>
@@ -127,7 +127,7 @@ $items = $CASH->item_view([$uuid]);
             <div class="col-xl-8">
               <textarea class="form-control form-control-sm" rows="5" name="objective" required><?php echo $row['objective'] ?></textarea>
               <div class="invalid-feedback">
-                REQUIRED!
+                กรุณา กรอกข้อมูล!
               </div>
             </div>
           </div>
